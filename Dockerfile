@@ -20,7 +20,7 @@ RUN curl -fsSL https://mise.run -o /tmp/mise.sh \
 
 # No password and no sudo: agents can't get root or undo anything set up as root.
 # '*' rather than the default '!' so sshd doesn't treat the account as locked.
-# DEV_UID/DEV_GID: the owner of ./data on the host. The default is Unraid's nobody:users (99:100).
+# DEV_UID/DEV_GID: the owner of the data folders on the host. The default is Unraid's nobody:users (99:100).
 # uid 0 would make dev root, so it's refused.
 ARG DEV_UID=99 DEV_GID=100
 RUN [ "$DEV_UID" != 0 ] && groupadd -o -g "$DEV_GID" dev && useradd -o -m -u "$DEV_UID" -g dev -s /bin/bash dev && usermod -p '*' dev

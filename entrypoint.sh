@@ -1,13 +1,14 @@
 #!/bin/sh
 set -eu
 
-install -m 644 /run/authorized_keys /etc/ssh/authorized_keys/dev
+printf '%s\n' "$AUTHORIZED_KEYS" | tr ';' '\n' > /etc/ssh/authorized_keys/dev
+chmod 644 /etc/ssh/authorized_keys/dev
 key=/etc/ssh/keys/ssh_host_ed25519_key
 [ -f "$key" ] || ssh-keygen -q -t ed25519 -N '' -f "$key"
 
-# ./data/home starts empty (Docker creates a missing folder as root): give it to dev, add the default shell files.
+# The home folder starts empty (Docker creates a missing folder as root): give it to dev, add the default shell files.
 chown dev:dev /home/dev
-chmod 1777 /tmp   # ./data/tmp is created root-only too
+chmod 1777 /tmp   # the tmp folder is created root-only too
 [ -f /home/dev/.profile ] || runuser -u dev -- cp -rn /etc/skel/. /home/dev/
 
 # Installed into the home folder on first start, so they update themselves and survive rebuilds.
