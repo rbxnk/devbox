@@ -7,7 +7,7 @@ services:
       # Baked in rather than mounted: a stack manager's clone path may not exist on the host.
       dockerfile_inline: |
         FROM alpine:3.22
-        RUN apk add --no-cache iptables
+        RUN apk add --no-cache iptables iptables-legacy
         COPY lanblock.sh /lanblock.sh
     network_mode: host
     cap_add: [NET_ADMIN]

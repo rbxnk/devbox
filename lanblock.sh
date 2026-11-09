@@ -3,6 +3,15 @@
 set -eu
 : "${SUBNET:?}"
 
+# Use the iptables backend Docker writes to (legacy on Unraid, nft on most distros).
+for ipt in iptables-nft iptables-legacy; do
+  "$ipt" -S DOCKER-USER >/dev/null 2>&1 && break
+  ipt=
+done
+[ -n "$ipt" ] || { echo "lanblock: no DOCKER-USER chain in either iptables backend (is Docker using its nftables firewall?)" >&2; exit 1; }
+echo "lanblock: using $ipt"
+iptables() { "$ipt" "$@"; }
+
 for c in DEVBOX-FWD DEVBOX-IN; do iptables -N "$c" 2>/dev/null || iptables -F "$c"; done
 
 # Replies to connections that came in (your SSH and mosh sessions) still pass.

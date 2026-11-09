@@ -8,7 +8,7 @@ A container for agentic coding on a home lab: Claude Code and [herdr](https://he
 - Data lives in host folders under `DEVBOX_DATA` (default `./data`, next to the compose file), outside Docker's storage: `home` is `dev`'s home folder (your work, Claude's login, the tools and their caches), `hostkeys` keeps the box's SSH identity across rebuilds, and `tmp` is its `/tmp`.
 
 ## Setup
-Needs Docker with Compose on a Linux host using the iptables firewall backend (the default).
+Needs Docker with Compose on a Linux host using Docker's iptables firewall (the default). `lanblock` works with either iptables backend, legacy (Unraid) or nft, and logs which one it picked.
 
 1. In Moshi, create a key and copy its public key.
 2. Deploy the stack:
@@ -51,4 +51,4 @@ mise itself updates when you rebuild the image.
 - CPU, memory and process limits are in `compose.yaml` (`cpus`, `mem_limit`, `pids_limit`).
 - The box has no Docker socket and no git credentials. Add a GitHub token or deploy key yourself, scoped to what the agents need.
 - After a host reboot Docker starts both containers at once, so the devbox can run for a few seconds before the rules are back. Only sshd is running then.
-- To remove the rules from the host: `iptables -D DOCKER-USER -s 172.30.99.0/24 -j DEVBOX-FWD; iptables -D INPUT -s 172.30.99.0/24 -j DEVBOX-IN`.
+- To remove the rules from the host (with the `iptables-legacy` or `iptables-nft` command lanblock logged): `iptables -D DOCKER-USER -s 172.30.99.0/24 -j DEVBOX-FWD; iptables -D INPUT -s 172.30.99.0/24 -j DEVBOX-IN`.
