@@ -1,0 +1,52 @@
+name: devbox
+
+services:
+  lanblock:
+    build:
+      dockerfile_inline: |
+        FROM alpine:3.22
+        RUN apk add --no-cache iptables
+    network_mode: host
+    cap_add: [NET_ADMIN]
+    init: true
+    environment:
+      SUBNET: ${DEVBOX_SUBNET:-172.30.99.0/24}
+    volumes: [./lanblock.sh:/lanblock.sh:ro]
+    command: sh /lanblock.sh
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/ready"]
+      interval: 2s
+    restart: unless-stopped
+
+  devbox:
+    build: .
+    hostname: devbox
+    init: true
+    # shortcut: compose waits for the rules on `up`, but after a host reboot Docker restarts both at once; the gap is seconds with only sshd running.
+    depends_on:
+      lanblock: { condition: service_healthy }
+    networks: [devbox]
+    # Public resolvers: a LAN or Tailscale DNS server would be blocked.
+    dns: [1.1.1.1, 9.9.9.9]
+    ports:
+      - "2222:22"
+      - "60000-60010:60000-60010/udp"
+    volumes:
+      - home:/home/dev
+      - hostkeys:/etc/ssh/keys
+      - ./authorized_keys:/run/authorized_keys:ro
+    cpus: 4
+    mem_limit: 8g
+    pids_limit: 4096
+    restart: unless-stopped
+
+networks:
+  devbox:
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: ${DEVBOX_SUBNET:-172.30.99.0/24}
+
+volumes:
+  home:
+  hostkeys:
