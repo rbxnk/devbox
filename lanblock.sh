@@ -1,32 +1,22 @@
 #!/bin/sh
-# Runs on the host's network: keeps the devbox subnet off the LAN, the host and other containers.
-set -eu
-: "${SUBNET:?}"
+# Runs as root in the devbox's own network namespace, before sshd: keeps the box off
+# the LAN, the host and other containers. The host's firewall is not touched.
+set -u
 
-# Use the iptables backend Docker writes to (legacy on Unraid, nft on most distros).
-for ipt in iptables-nft iptables-legacy; do
-  "$ipt" -S DOCKER-USER >/dev/null 2>&1 && break
-  ipt=
+rules() {
+  "$1" -F OUTPUT &&
+  "$1" -A OUTPUT -o lo -j ACCEPT &&
+  # Replies to connections that came in (your SSH and mosh sessions) still pass.
+  "$1" -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT &&
+  for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10 169.254.0.0/16; do
+    "$1" -A OUTPUT -d "$net" -j DROP || return 1
+  done
+}
+
+# Whichever backend the host kernel supports; legacy first, as Docker on Unraid uses it.
+for ipt in iptables-legacy iptables-nft; do
+  if rules "$ipt"; then echo "lanblock: rules in place ($ipt)"; exit 0; fi
+  "$ipt" -F OUTPUT 2>/dev/null
 done
-[ -n "$ipt" ] || { echo "lanblock: no DOCKER-USER chain in either iptables backend (is Docker using its nftables firewall?)" >&2; exit 1; }
-echo "lanblock: using $ipt"
-iptables() { "$ipt" "$@" || { echo "lanblock: failed: $ipt $*" >&2; return 1; }; }
-
-for c in DEVBOX-FWD DEVBOX-IN; do iptables -N "$c" 2>/dev/null || iptables -F "$c"; done
-
-# Replies to connections that came in (your SSH and mosh sessions) still pass.
-iptables -A DEVBOX-FWD -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
-for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10 169.254.0.0/16; do
-  iptables -A DEVBOX-FWD -d "$net" -j DROP
-done
-# Traffic to the host's own addresses goes through INPUT, not DOCKER-USER.
-iptables -A DEVBOX-IN -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
-iptables -A DEVBOX-IN -j DROP
-
-iptables -C DOCKER-USER -s "$SUBNET" -j DEVBOX-FWD 2>/dev/null || iptables -I DOCKER-USER -s "$SUBNET" -j DEVBOX-FWD
-iptables -C INPUT -s "$SUBNET" -j DEVBOX-IN 2>/dev/null || iptables -I INPUT -s "$SUBNET" -j DEVBOX-IN
-
-echo "lanblock: rules in place for $SUBNET"
-touch /tmp/ready
-# Rules stay when this stops: failing closed is the point.
-exec sleep infinity
+echo "lanblock: could not set the firewall rules; not starting" >&2
+exit 1

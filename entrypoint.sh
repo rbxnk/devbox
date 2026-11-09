@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+lanblock.sh   # fails closed: no rules, no sshd
+
 printf '%s\n' "$AUTHORIZED_KEYS" | tr ';' '\n' > /etc/ssh/authorized_keys/dev
 chmod 644 /etc/ssh/authorized_keys/dev
 key=/etc/ssh/keys/ssh_host_ed25519_key

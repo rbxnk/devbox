@@ -4,11 +4,11 @@ A container for agentic coding on a home lab: Claude Code and [herdr](https://he
 
 ## What's in it
 - `devbox`: Debian 13 with sshd, mosh, git, build tools and [mise](https://mise.jdx.dev). You log in as `dev`: key only, no password, no sudo. Claude Code and herdr install into `dev`'s home on the first start and update themselves from there.
-- `lanblock`: a helper on the host's network that adds firewall rules to the host (`DOCKER-USER` and `INPUT`), dropping the devbox's traffic to 10/8, 172.16/12, 192.168/16, 100.64/10 (Tailscale) and 169.254/16. Replies to your incoming sessions still pass. The rules stay if it stops, and it re-adds them at each boot.
+- `lanblock.sh`: at each start, before sshd, sets firewall rules inside the box's own network namespace that drop its traffic to 10/8, 172.16/12, 192.168/16, 100.64/10 (Tailscale) and 169.254/16, which covers the host too. Replies to your incoming sessions still pass. The host's firewall isn't touched. If the rules can't be set, the box doesn't start. `dev` has no root, so it can't remove them.
 - Data lives in host folders under `DEVBOX_DATA` (default `./data`, next to the compose file), outside Docker's storage: `home` is `dev`'s home folder (your work, Claude's login, the tools and their caches), `hostkeys` keeps the box's SSH identity across rebuilds, and `tmp` is its `/tmp`.
 
 ## Setup
-Needs Docker with Compose on a Linux host using Docker's iptables firewall (the default). `lanblock` works with either iptables backend, legacy (Unraid) or nft, and logs which one it picked.
+Needs Docker with Compose on a Linux host.
 
 1. In Moshi, create a key and copy its public key.
 2. Deploy the stack:
@@ -50,5 +50,3 @@ mise itself updates when you rebuild the image.
 - `/tmp` isn't cleared on restart; empty `$DEVBOX_DATA/tmp` yourself if it grows. Root installs still go in Docker's storage (a rebuild clears them), and `docker builder prune` frees old build cache.
 - CPU, memory and process limits are in `compose.yaml` (`cpus`, `mem_limit`, `pids_limit`).
 - The box has no Docker socket and no git credentials. Add a GitHub token or deploy key yourself, scoped to what the agents need.
-- After a host reboot Docker starts both containers at once, so the devbox can run for a few seconds before the rules are back. Only sshd is running then.
-- To remove the rules from the host (with the `iptables-legacy` or `iptables-nft` command lanblock logged): `iptables -D DOCKER-USER -s 172.30.99.0/24 -j DEVBOX-FWD; iptables -D INPUT -s 172.30.99.0/24 -j DEVBOX-IN`.

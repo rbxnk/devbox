@@ -1,7 +1,7 @@
 FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      openssh-server mosh locales ca-certificates curl git build-essential \
+      openssh-server mosh iptables locales ca-certificates curl git build-essential \
       less procps ripgrep unzip \
  && sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen \
  && echo LANG=en_US.UTF-8 > /etc/default/locale \
@@ -26,7 +26,7 @@ ARG DEV_UID=99 DEV_GID=100
 RUN [ "$DEV_UID" != 0 ] && groupadd -o -g "$DEV_GID" dev && useradd -o -m -u "$DEV_UID" -g dev -s /bin/bash dev && usermod -p '*' dev
 
 COPY sshd.conf /etc/ssh/sshd_config.d/devbox.conf
-COPY entrypoint.sh check.sh /usr/local/bin/
+COPY entrypoint.sh check.sh lanblock.sh /usr/local/bin/
 
 EXPOSE 22 60000-60010/udp
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

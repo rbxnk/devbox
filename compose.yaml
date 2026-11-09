@@ -1,25 +1,6 @@
 name: devbox
 
 services:
-  lanblock:
-    build:
-      context: .
-      # Baked in rather than mounted: a stack manager's clone path may not exist on the host.
-      dockerfile_inline: |
-        FROM alpine:3.22
-        RUN apk add --no-cache iptables iptables-legacy
-        COPY lanblock.sh /lanblock.sh
-    network_mode: host
-    cap_add: [NET_ADMIN]
-    init: true
-    environment:
-      SUBNET: ${DEVBOX_SUBNET:-172.30.99.0/24}
-    command: sh /lanblock.sh
-    healthcheck:
-      test: ["CMD", "test", "-f", "/tmp/ready"]
-      interval: 2s
-    restart: unless-stopped
-
   devbox:
     build:
       context: .
@@ -28,9 +9,8 @@ services:
         DEV_GID: ${DEV_GID:-100}
     hostname: devbox
     init: true
-    # shortcut: compose waits for the rules on `up`, but after a host reboot Docker restarts both at once; the gap is seconds with only sshd running.
-    depends_on:
-      lanblock: { condition: service_healthy }
+    # For lanblock.sh's rules in the box's own network namespace; dev has no root, so can't use it.
+    cap_add: [NET_ADMIN]
     networks: [devbox]
     # Public resolvers: a LAN or Tailscale DNS server would be blocked.
     dns: [1.1.1.1, 9.9.9.9]
