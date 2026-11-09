@@ -41,11 +41,10 @@ services:
       # Your SSH public key(s); separate several with ";".
       AUTHORIZED_KEYS: ${AUTHORIZED_KEYS:?set AUTHORIZED_KEYS to your SSH public key}
     volumes:
-      # Host folders, so everything big lands on the host disk, not in Docker's storage.
-      # Absolute by default: Dockhand runs compose from its own clone of the repo.
-      - ${DEVBOX_DATA:-/mnt/user/appdata/devbox}/home:/home/dev
-      - ${DEVBOX_DATA:-/mnt/user/appdata/devbox}/hostkeys:/etc/ssh/keys
-      - ${DEVBOX_DATA:-/mnt/user/appdata/devbox}/tmp:/tmp
+      # Host folders next to the stack, so everything big lands on the host disk, not in Docker's storage.
+      - ${DEVBOX_DATA:-./data}/home:/home/dev
+      - ${DEVBOX_DATA:-./data}/hostkeys:/etc/ssh/keys
+      - ${DEVBOX_DATA:-./data}/tmp:/tmp
     cpus: 4
     mem_limit: 8g
     pids_limit: 4096
