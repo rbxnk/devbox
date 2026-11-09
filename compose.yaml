@@ -19,7 +19,11 @@ services:
     restart: unless-stopped
 
   devbox:
-    build: .
+    build:
+      context: .
+      args:
+        DEV_UID: ${DEV_UID:-1000}
+        DEV_GID: ${DEV_GID:-1000}
     hostname: devbox
     init: true
     # shortcut: compose waits for the rules on `up`, but after a host reboot Docker restarts both at once; the gap is seconds with only sshd running.
@@ -32,8 +36,9 @@ services:
       - "2222:22"
       - "60000-60010:60000-60010/udp"
     volumes:
-      - home:/home/dev
-      - hostkeys:/etc/ssh/keys
+      # Bind mounts, so everything big lands on the host disk, not in Docker's storage.
+      - ./data/home:/home/dev
+      - ./data/hostkeys:/etc/ssh/keys
       - ./authorized_keys:/run/authorized_keys:ro
     cpus: 4
     mem_limit: 8g
@@ -46,7 +51,3 @@ networks:
     ipam:
       config:
         - subnet: ${DEVBOX_SUBNET:-172.30.99.0/24}
-
-volumes:
-  home:
-  hostkeys:

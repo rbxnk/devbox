@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LANG=en_US.UTF-8
 
 # mise for languages and CLIs. The binary is in the image (update it by rebuilding);
-# the tools it installs live in dev's home volume. Shims on PATH also cover
+# the tools it installs live in dev's home folder. Shims on PATH also cover
 # non-interactive shells, such as the commands agents run.
 RUN curl -fsSL https://mise.run -o /tmp/mise.sh \
  && MISE_INSTALL_PATH=/usr/local/bin/mise sh /tmp/mise.sh && rm /tmp/mise.sh \
@@ -20,7 +20,9 @@ RUN curl -fsSL https://mise.run -o /tmp/mise.sh \
 
 # No password and no sudo: agents can't get root or undo anything set up as root.
 # '*' rather than the default '!' so sshd doesn't treat the account as locked.
-RUN useradd -m -s /bin/bash dev && usermod -p '*' dev
+# DEV_UID/DEV_GID: match your host user, so files in ./data/home are yours on the host.
+ARG DEV_UID=1000 DEV_GID=1000
+RUN groupadd -o -g "$DEV_GID" dev && useradd -o -m -u "$DEV_UID" -g dev -s /bin/bash dev && usermod -p '*' dev
 
 COPY sshd.conf /etc/ssh/sshd_config.d/devbox.conf
 COPY entrypoint.sh check.sh /usr/local/bin/
