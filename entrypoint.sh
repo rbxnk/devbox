@@ -17,6 +17,19 @@ chmod 1777 /tmp   # the tmp folder is created root-only too
 runuser -u dev -- bash -c 'set -eo pipefail
   [ -x ~/.local/bin/claude ] || curl -fsSL https://claude.ai/install.sh | bash
   [ -x ~/.local/bin/herdr ]  || curl -fsSL https://herdr.dev/install.sh | sh
-' || echo "devbox: installing claude or herdr failed; restart the container to retry" >&2
+  [ -x ~/.local/bin/moshi-hook ] || curl -fsSL https://getmoshi.app/install.sh | MOSHI_HOOK_SKIP_FIRST_RUN=1 sh
+  # Claude Code hooks: herdr (agent state in its sidebar) and Moshi (phone notifications, approvals). Both are idempotent.
+  ~/.local/bin/herdr integration install claude >/dev/null
+  ~/.local/bin/moshi-hook install --target claude >/dev/null
+' || echo "devbox: installing claude, herdr or moshi-hook failed; restart the container to retry" >&2
+
+# Pair with the Moshi app once, if a token was given (Moshi: Settings -> Integrations).
+if [ -n "${MOSHI_PAIRING_TOKEN:-}" ] && runuser -u dev -- ~dev/.local/bin/moshi-hook status 2>/dev/null | grep -q '^status: unpaired'; then
+  runuser -u dev -- ~dev/.local/bin/moshi-hook pair --store file --token "$MOSHI_PAIRING_TOKEN" \
+    || echo "devbox: Moshi pairing failed; check MOSHI_PAIRING_TOKEN" >&2
+fi
+unset MOSHI_PAIRING_TOKEN   # the daemon runs as dev, so agents could read it from /proc
+# The Moshi daemon; there's no systemd here, so a loop keeps it running.
+runuser -u dev -- sh -c 'while :; do ~/.local/bin/moshi-hook serve >/dev/null 2>&1; sleep 10; done' &
 
 exec /usr/sbin/sshd -D -e

@@ -10,6 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -f /etc/ssh/ssh_host_*
 ENV LANG=en_US.UTF-8
 
+# GitHub CLI, from GitHub's own apt repository (Debian's lags behind).
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /usr/share/keyrings/githubcli.gpg \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli.gpg] https://cli.github.com/packages stable main" \
+      > /etc/apt/sources.list.d/github-cli.list \
+ && apt-get update && apt-get install -y --no-install-recommends gh \
+ && rm -rf /var/lib/apt/lists/*
+
 # mise for languages and CLIs. The binary is in the image (update it by rebuilding);
 # the tools it installs live in dev's home folder. Shims on PATH also cover
 # non-interactive shells, such as the commands agents run.
