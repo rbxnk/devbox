@@ -3,7 +3,7 @@
 A container for agentic coding on a home lab: Claude Code and [herdr](https://herdr.dev), reached over SSH or mosh (e.g. Moshi on an iPhone, through the host's Tailscale). Agents can reach the internet but not your LAN, your Tailscale devices or the host.
 
 ## What's in it
-- `devbox`: Debian 13 with sshd, mosh, git and build tools. You log in as `dev`: key only, no password, no sudo. Claude Code and herdr install into `dev`'s home on the first start and update themselves from there.
+- `devbox`: Debian 13 with sshd, mosh, git, build tools and [mise](https://mise.jdx.dev). You log in as `dev`: key only, no password, no sudo. Claude Code and herdr install into `dev`'s home on the first start and update themselves from there.
 - `lanblock`: a helper on the host's network that adds firewall rules to the host (`DOCKER-USER` and `INPUT`), dropping the devbox's traffic to 10/8, 172.16/12, 192.168/16, 100.64/10 (Tailscale) and 169.254/16. Replies to your incoming sessions still pass. The rules stay if it stops, and it re-adds them at each boot.
 - Volumes: `home` (your work, Claude's login, the tools) and `hostkeys` (so the box keeps its SSH identity across rebuilds).
 
@@ -26,6 +26,16 @@ Check the isolation from inside the box, naming a couple of LAN IPs (your router
 check.sh 192.168.1.1 192.168.1.20
 ```
 Every line should read `ok`.
+
+## Installing tools
+There's no sudo, so:
+- Languages and CLIs: `mise use -g node@lts python go …`. They install into the home volume and survive rebuilds.
+- Python tools: `uv tool install …` or `pipx install …` (get uv with `mise use -g uv`). Node tools: `npm i -g …` once Node is installed through mise.
+- Single binaries: put them in `~/.local/bin`.
+- System packages you always want: add them to the `apt-get install` list in the `Dockerfile`, then `docker compose up -d --build devbox`.
+- A one-off package as root, from the host: `docker compose exec -u root devbox apt-get install -y PKG`. It's gone after the next rebuild.
+
+mise itself updates when you rebuild the image.
 
 ## Notes
 - Mosh uses UDP 60000–60010, one port per open session, so about 11 sessions at once. With herdr you rarely need more than one.

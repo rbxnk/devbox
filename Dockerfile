@@ -10,6 +10,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -f /etc/ssh/ssh_host_*
 ENV LANG=en_US.UTF-8
 
+# mise for languages and CLIs. The binary is in the image (update it by rebuilding);
+# the tools it installs live in dev's home volume. Shims on PATH also cover
+# non-interactive shells, such as the commands agents run.
+RUN curl -fsSL https://mise.run -o /tmp/mise.sh \
+ && MISE_INSTALL_PATH=/usr/local/bin/mise sh /tmp/mise.sh && rm /tmp/mise.sh \
+ && mise --version \
+ && echo 'export PATH="$HOME/.local/share/mise/shims:$PATH"' > /etc/profile.d/mise.sh
+
 # No password and no sudo: agents can't get root or undo anything set up as root.
 # '*' rather than the default '!' so sshd doesn't treat the account as locked.
 RUN useradd -m -s /bin/bash dev && usermod -p '*' dev
