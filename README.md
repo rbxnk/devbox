@@ -15,7 +15,6 @@ Needs Docker with Compose on a Linux host using the iptables firewall backend (t
    ```sh
    git clone https://github.com/rbxnk/devbox && cd devbox
    echo 'ssh-ed25519 AAAA… moshi' > authorized_keys   # one public key per line
-   printf 'DEV_UID=%s\nDEV_GID=%s\n' $(id -u) $(id -g) > .env   # files in ./data/home are then yours
    docker compose up -d --build
    docker compose logs -f devbox                      # wait for "Server listening"
    ```
@@ -42,6 +41,7 @@ mise itself updates when you rebuild the image.
 - Mosh uses UDP 60000–60010, one port per open session, so about 11 sessions at once. With herdr you rarely need more than one.
 - SSH (2222) and mosh are published on all host interfaces. To allow only Tailscale, prefix the ports in `compose.yaml` with the host's Tailscale IP, e.g. `"100.x.y.z:2222:22"`.
 - DNS goes to 1.1.1.1 and 9.9.9.9, because a resolver on your LAN or Tailscale would be blocked.
+- Files in `./data` are owned by uid 99 and gid 100, Unraid's `nobody:users`. On another host, set `DEV_UID` and `DEV_GID` in `.env` to your user's ids, e.g. 1000 (not 0: that would make `dev` root, and the build refuses it).
 - Change the subnet with `DEVBOX_SUBNET` (in `.env`) if 172.30.99.0/24 clashes with something.
 - `/tmp` isn't cleared on restart; empty `./data/tmp` yourself if it grows. Root installs still go in Docker's storage (a rebuild clears them), and `docker builder prune` frees old build cache.
 - CPU, memory and process limits are in `compose.yaml` (`cpus`, `mem_limit`, `pids_limit`).

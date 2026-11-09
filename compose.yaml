@@ -22,8 +22,8 @@ services:
     build:
       context: .
       args:
-        DEV_UID: ${DEV_UID:-1000}
-        DEV_GID: ${DEV_GID:-1000}
+        DEV_UID: ${DEV_UID:-99}
+        DEV_GID: ${DEV_GID:-100}
     hostname: devbox
     init: true
     # shortcut: compose waits for the rules on `up`, but after a host reboot Docker restarts both at once; the gap is seconds with only sshd running.
