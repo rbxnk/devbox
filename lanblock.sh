@@ -10,7 +10,7 @@ for ipt in iptables-nft iptables-legacy; do
 done
 [ -n "$ipt" ] || { echo "lanblock: no DOCKER-USER chain in either iptables backend (is Docker using its nftables firewall?)" >&2; exit 1; }
 echo "lanblock: using $ipt"
-iptables() { "$ipt" "$@"; }
+iptables() { "$ipt" "$@" || { echo "lanblock: failed: $ipt $*" >&2; return 1; }; }
 
 for c in DEVBOX-FWD DEVBOX-IN; do iptables -N "$c" 2>/dev/null || iptables -F "$c"; done
 
