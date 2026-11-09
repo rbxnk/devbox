@@ -7,6 +7,7 @@ key=/etc/ssh/keys/ssh_host_ed25519_key
 
 # ./data/home starts empty (Docker creates a missing folder as root): give it to dev, add the default shell files.
 chown dev:dev /home/dev
+chmod 1777 /tmp   # ./data/tmp is created root-only too
 [ -f /home/dev/.profile ] || runuser -u dev -- cp -rn /etc/skel/. /home/dev/
 
 # Installed into the home folder on first start, so they update themselves and survive rebuilds.

@@ -39,6 +39,7 @@ services:
       # Bind mounts, so everything big lands on the host disk, not in Docker's storage.
       - ./data/home:/home/dev
       - ./data/hostkeys:/etc/ssh/keys
+      - ./data/tmp:/tmp
       - ./authorized_keys:/run/authorized_keys:ro
     cpus: 4
     mem_limit: 8g
