@@ -30,7 +30,7 @@ Every line should read `ok`.
 ## Installing tools
 There's no sudo, so:
 - Languages and CLIs: `mise use -g node@lts python go …`. They install into the home volume and survive rebuilds.
-- Python tools: `uv tool install …` or `pipx install …` (get uv with `mise use -g uv`). Node tools: `npm i -g …` once Node is installed through mise.
+- Python tools: `uv tool install …` (get uv with `mise use -g uv`). Node tools: `npm i -g …` once Node is installed through mise.
 - Single binaries: put them in `~/.local/bin`.
 - System packages you always want: add them to the `apt-get install` list in the `Dockerfile`, then `docker compose up -d --build devbox`.
 - A one-off package as root, from the host: `docker compose exec -u root devbox apt-get install -y PKG`. It's gone after the next rebuild.
