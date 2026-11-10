@@ -3,7 +3,7 @@
 A container for agentic coding on a home lab: Claude Code and [herdr](https://herdr.dev), reached over SSH or mosh (e.g. Moshi on an iPhone, through the host's Tailscale). Agents can reach the internet but not your LAN, your Tailscale devices or the host.
 
 ## What's in it
-- `devbox`: Debian 13 with sshd, mosh, git, the GitHub CLI (`gh`), build tools and [mise](https://mise.jdx.dev). You log in as `dev`, with an SSH key, a password (`DEV_PASSWORD`, optional) or both. There's no sudo.
+- `devbox`: Debian 13 with sshd, mosh, git, the GitHub CLI (`gh`), build tools, Go, Node (LTS, with npm), Python 3 with `uv`, `flyctl` and [mise](https://mise.jdx.dev). You log in as `dev`, with an SSH key, a password (`DEV_PASSWORD`, optional) or both. There's no sudo.
 - Claude Code, herdr (the TUI), [herdr-core](https://herdr.dev/mobile/) (`hc`) and [moshi-hook](https://getmoshi.app/docs/hooks) install into `dev`'s home on the first start and update themselves from there. Each start also installs their Claude Code hooks: herdr's (agent state in its sidebar) and Moshi's (phone notifications and approvals), and keeps the herdr-core server and the Moshi daemon running. herdr-core is what the herdr mobile and desktop apps connect to, over SSH.
 - `lanblock.sh`: at each start, before sshd, sets firewall rules inside the box's own network namespace that drop its traffic to 10/8, 172.16/12, 192.168/16, 100.64/10 (Tailscale) and 169.254/16, which covers the host too. Replies to your incoming sessions still pass. The host's firewall isn't touched. If the rules can't be set, the box doesn't start. `dev` has no root, so it can't remove them.
 - Data lives in host folders under `DEVBOX_DATA` (default `./data`, next to the compose file), outside Docker's storage: `home` is `dev`'s home folder (your work, Claude's login, the tools and their caches), `hostkeys` keeps the box's SSH identity across rebuilds, and `tmp` is its `/tmp`.
@@ -36,13 +36,13 @@ Every line should read `ok`.
 
 ## Installing tools
 There's no sudo, so:
-- Languages and CLIs: `mise use -g node@lts python go …`. They install into the home folder and survive rebuilds.
-- Python tools: `uv tool install …` (get uv with `mise use -g uv`). Node tools: `npm i -g …` once Node is installed through mise.
+- Go, Node, Python, `uv` and `flyctl` are in the image; a rebuild updates them. For another version or language: `mise use -g node@22 rust …`. mise's versions install into the home folder, survive rebuilds and come first on the PATH.
+- Python tools: `uv tool install …`, and `uv` or a venv for projects (plain `pip install` outside a venv is blocked on Debian). Node tools: `npm i -g …` (goes to `~/.local`). Go tools: `go install …` (goes to `~/go/bin`).
 - Single binaries: put them in `~/.local/bin`.
 - System packages you always want: add them to the `apt-get install` list in the `Dockerfile`, then `docker compose up -d --build devbox`.
 - A one-off package as root, from the host: `docker compose exec -u root devbox apt-get install -y PKG`. It's gone after the next rebuild.
 
-mise itself updates when you rebuild the image.
+mise, Go, Node, uv and flyctl update when you rebuild the image. Sign `fly` in with `fly auth login`; its login is kept in the home folder.
 
 ## Notes
 - Mosh uses UDP 60000–60010, one port per open session, so about 11 sessions at once. With herdr you rarely need more than one.

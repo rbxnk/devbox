@@ -3,6 +3,7 @@ FROM debian:trixie-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
       openssh-server mosh iptables locales ca-certificates curl git build-essential \
       less procps ripgrep unzip \
+      python3 python3-venv python3-pip python-is-python3 \
  && sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen \
  && echo LANG=en_US.UTF-8 > /etc/default/locale \
  && echo 'export LANG=en_US.UTF-8' > /etc/profile.d/locale.sh \
@@ -25,6 +26,26 @@ RUN curl -fsSL https://mise.run -o /tmp/mise.sh \
  && MISE_INSTALL_PATH=/usr/local/bin/mise sh /tmp/mise.sh && rm /tmp/mise.sh \
  && mise --version \
  && echo 'export PATH="$HOME/.local/share/mise/shims:$PATH"' > /etc/profile.d/mise.sh
+
+# Go, Node, uv and flyctl, updated by rebuilding. A mise-installed version, if any, comes first on PATH.
+# Go: the latest release.
+RUN v=$(curl -fsSL 'https://go.dev/VERSION?m=text' | head -1) \
+ && curl -fsSL "https://go.dev/dl/$v.linux-$(dpkg --print-architecture).tar.gz" -o /tmp/go.tgz \
+ && tar -C /usr/local -xzf /tmp/go.tgz && rm /tmp/go.tgz \
+ && /usr/local/go/bin/go version \
+ && echo 'export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"' > /etc/profile.d/go.sh
+# Node: the current LTS, with npm; global installs go to ~/.local since dev has no root.
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x -o /tmp/nodesource.sh && bash /tmp/nodesource.sh \
+ && apt-get install -y --no-install-recommends nodejs && rm -rf /var/lib/apt/lists/* /tmp/nodesource.sh \
+ && node --version && npm --version \
+ && npm config set --location=global prefix '${HOME}/.local'
+# uv, for Python tools and projects (pip outside a venv is blocked on Debian).
+RUN curl -fsSL https://astral.sh/uv/install.sh -o /tmp/uv.sh \
+ && UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh /tmp/uv.sh && rm /tmp/uv.sh \
+ && uv --version
+# flyctl, as fly and flyctl.
+RUN curl -fsSL https://fly.io/install.sh -o /tmp/fly.sh && FLYCTL_INSTALL=/usr/local sh /tmp/fly.sh && rm /tmp/fly.sh \
+ && fly version
 
 # No password and no sudo: agents can't get root or undo anything set up as root.
 # '*' rather than the default '!' so sshd doesn't treat the account as locked.
