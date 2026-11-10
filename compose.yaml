@@ -7,6 +7,8 @@ services:
       args:
         DEV_UID: ${DEV_UID:-99}
         DEV_GID: ${DEV_GID:-100}
+    # Build on every `up`, so a redeploy picks up Dockerfile changes even without --build.
+    pull_policy: build
     hostname: devbox
     init: true
     # For lanblock.sh's rules in the box's own network namespace; dev has no root, so can't use it.

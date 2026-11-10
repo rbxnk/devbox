@@ -13,7 +13,7 @@ Needs Docker with Compose on a Linux host.
 
 1. In Moshi, create a key and copy its public key.
 2. Deploy the stack:
-   - **Dockhand:** add a Git stack from this repo (compose file `compose.yaml`), turn on **Build images on deploy**, and set the environment variable `AUTHORIZED_KEYS` to your public key. Deploy, then wait for `Server listening` in the devbox logs.
+   - **Dockhand:** add a Git stack from this repo (compose file `compose.yaml`), and set the environment variable `AUTHORIZED_KEYS` to your public key. Deploy, then wait for `Server listening` in the devbox logs.
    - **Plain Compose:**
      ```sh
      git clone https://github.com/rbxnk/devbox && cd devbox
