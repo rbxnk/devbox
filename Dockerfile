@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       less procps ripgrep unzip \
  && sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen \
  && echo LANG=en_US.UTF-8 > /etc/default/locale \
+ && echo 'export LANG=en_US.UTF-8' > /etc/profile.d/locale.sh \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /run/sshd /etc/ssh/keys /etc/ssh/authorized_keys \
  && rm -f /etc/ssh/ssh_host_*

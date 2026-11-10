@@ -42,7 +42,8 @@ fi
 unset MOSHI_PAIRING_TOKEN   # the daemon runs as dev, so agents could read it from /proc
 # Daemons for herdr-core (the server the herdr apps connect to) and Moshi.
 # There's no systemd here, so a loop keeps each running, and restarts it after an update.
-runuser -u dev -- sh -c 'while :; do ~/.local/bin/herdr-core serve >/dev/null 2>&1; sleep 5; done' &
-runuser -u dev -- sh -c 'while :; do ~/.local/bin/moshi-hook serve >/dev/null 2>&1; sleep 10; done' &
+# A login shell, so they (and the terminals herdr-core starts) get bash and dev's full PATH.
+runuser -l dev -c 'while :; do ~/.local/bin/herdr-core serve >/dev/null 2>&1; sleep 5; done' &
+runuser -l dev -c 'while :; do ~/.local/bin/moshi-hook serve >/dev/null 2>&1; sleep 10; done' &
 
 exec /usr/sbin/sshd -D -e
