@@ -4,7 +4,7 @@ A container for agentic coding on a home lab: Claude Code and [herdr](https://he
 
 ## What's in it
 - `devbox`: Debian 13 with sshd, mosh, git, the GitHub CLI (`gh`), build tools and [mise](https://mise.jdx.dev). You log in as `dev`, with an SSH key, a password (`DEV_PASSWORD`, optional) or both. There's no sudo.
-- Claude Code, herdr and [moshi-hook](https://getmoshi.app/docs/hooks) install into `dev`'s home on the first start and update themselves from there. Each start also installs their Claude Code hooks: herdr's (agent state in its sidebar) and Moshi's (phone notifications and approvals), and keeps the Moshi daemon running.
+- Claude Code, herdr (the TUI), [herdr-core](https://herdr.dev/mobile/) (`hc`) and [moshi-hook](https://getmoshi.app/docs/hooks) install into `dev`'s home on the first start and update themselves from there. Each start also installs their Claude Code hooks: herdr's (agent state in its sidebar) and Moshi's (phone notifications and approvals), and keeps the herdr-core server and the Moshi daemon running. herdr-core is what the herdr mobile and desktop apps connect to, over SSH.
 - `lanblock.sh`: at each start, before sshd, sets firewall rules inside the box's own network namespace that drop its traffic to 10/8, 172.16/12, 192.168/16, 100.64/10 (Tailscale) and 169.254/16, which covers the host too. Replies to your incoming sessions still pass. The host's firewall isn't touched. If the rules can't be set, the box doesn't start. `dev` has no root, so it can't remove them.
 - Data lives in host folders under `DEVBOX_DATA` (default `./data`, next to the compose file), outside Docker's storage: `home` is `dev`'s home folder (your work, Claude's login, the tools and their caches), `hostkeys` keeps the box's SSH identity across rebuilds, and `tmp` is its `/tmp`.
 
@@ -26,6 +26,7 @@ Needs Docker with Compose on a Linux host.
    Optional: set `MOSHI_PAIRING_TOKEN` too (Moshi: Settings → Integrations) and the box pairs with the app on its first start. You can also pair later over SSH: `moshi-hook pair --store file --token …`, then restart the stack.
 3. In Moshi, add a host: the home lab's Tailscale name or IP, port `2222`, user `dev`, your key, mosh on.
 4. First login: run `claude` and sign in (open the link it prints on your phone), and `gh auth login` if agents should use GitHub. Then run `herdr`. `moshi-hook doctor` checks the Moshi side.
+5. Herdr app: add this box as a machine (the same host, port and user). It can sign in with the password and then add its own key to `~/.ssh/authorized_keys`, which sshd accepts.
 
 Check the isolation from inside the box, naming a couple of LAN IPs (your router, another machine):
 ```sh
@@ -52,4 +53,5 @@ mise itself updates when you rebuild the image.
 - Change the subnet with `DEVBOX_SUBNET` if 172.30.99.0/24 clashes with something.
 - `/tmp` isn't cleared on restart; empty `$DEVBOX_DATA/tmp` yourself if it grows. Root installs still go in Docker's storage (a rebuild clears them), and `docker builder prune` frees old build cache.
 - CPU, memory and process limits are in `compose.yaml` (`cpus`, `mem_limit`, `pids_limit`).
+- sshd accepts keys from `AUTHORIZED_KEYS` and from `~/.ssh/authorized_keys`. Agents can write the second one too, so an agent could add a key of its own; check it now and then.
 - The box has no Docker socket and no git credentials. Sign `gh` in with a token scoped to what the agents need (`gh auth login`, then `gh auth setup-git` so `git` uses it too).
