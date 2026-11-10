@@ -18,6 +18,15 @@ unset DEV_PASSWORD   # before anything runs as dev, which could read it from /pr
 key=/etc/ssh/keys/ssh_host_ed25519_key
 [ -f "$key" ] || ssh-keygen -q -t ed25519 -N '' -f "$key"
 
+# herdr-core ties its identity to /etc/machine-id, which each image build makes anew; a new one
+# reads as a different machine to the herdr apps. Keep one for good, starting from herdr-core's.
+mid=/etc/ssh/keys/machine-id
+if [ ! -s "$mid" ]; then
+  sed -n 's/.*"machine_id": *"\([0-9a-f]\{32\}\)".*/\1/p' /home/dev/.local/state/herdr-core/default/core.json 2>/dev/null > "$mid" || true
+  [ -s "$mid" ] || cat /proc/sys/kernel/random/uuid | tr -d '-' > "$mid"
+fi
+cat "$mid" > /etc/machine-id
+
 # The home folder starts empty (Docker creates a missing folder as root): give it to dev, add the default shell files.
 chown dev:dev /home/dev
 chmod 1777 /tmp   # the tmp folder is created root-only too
