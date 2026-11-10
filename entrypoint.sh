@@ -3,8 +3,18 @@ set -eu
 
 lanblock.sh   # fails closed: no rules, no sshd
 
-printf '%s\n' "$AUTHORIZED_KEYS" | tr ';' '\n' > /etc/ssh/authorized_keys/dev
+[ -n "${AUTHORIZED_KEYS:-}${DEV_PASSWORD:-}" ] || { echo "devbox: set AUTHORIZED_KEYS or DEV_PASSWORD, or nobody can log in" >&2; exit 1; }
+printf '%s\n' "${AUTHORIZED_KEYS:-}" | tr ';' '\n' > /etc/ssh/authorized_keys/dev
 chmod 644 /etc/ssh/authorized_keys/dev
+# Password login only when DEV_PASSWORD is set; '*' (no password, not locked) otherwise.
+if [ -n "${DEV_PASSWORD:-}" ]; then
+  printf 'dev:%s\n' "$DEV_PASSWORD" | chpasswd
+  echo "PasswordAuthentication yes" > /etc/ssh/sshd_config.d/00-password.conf
+else
+  usermod -p '*' dev
+  echo "PasswordAuthentication no" > /etc/ssh/sshd_config.d/00-password.conf
+fi
+unset DEV_PASSWORD   # before anything runs as dev, which could read it from /proc
 key=/etc/ssh/keys/ssh_host_ed25519_key
 [ -f "$key" ] || ssh-keygen -q -t ed25519 -N '' -f "$key"
 
