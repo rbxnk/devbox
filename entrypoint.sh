@@ -37,23 +37,14 @@ runuser -u dev -- bash -c 'set -eo pipefail
   [ -x ~/.local/bin/claude ] || curl -fsSL https://claude.ai/install.sh | bash
   [ -x ~/.local/bin/herdr ]  || curl -fsSL https://herdr.dev/install.sh | sh
   [ -x ~/.local/bin/herdr-core ] || curl -fsSL https://releases.herdr.dev/core/install.sh | sh
-  [ -x ~/.local/bin/moshi-hook ] || curl -fsSL https://getmoshi.app/install.sh | MOSHI_HOOK_SKIP_FIRST_RUN=1 sh
-  # Claude Code hooks: herdr (agent state in its sidebar) and Moshi (phone notifications, approvals). Both are idempotent.
+  # Claude Code hook: herdr (agent state in its sidebar). Idempotent.
   ~/.local/bin/herdr integration install claude >/dev/null
-  ~/.local/bin/moshi-hook install --target claude >/dev/null
-' || echo "devbox: installing claude, herdr, herdr-core or moshi-hook failed; restart the container to retry" >&2
+' || echo "devbox: installing claude, herdr or herdr-core failed; restart the container to retry" >&2
 
-# Pair with the Moshi app once, if a token was given (Moshi: Settings -> Integrations).
-if [ -n "${MOSHI_PAIRING_TOKEN:-}" ] && runuser -u dev -- ~dev/.local/bin/moshi-hook status 2>/dev/null | grep -q '^status: unpaired'; then
-  runuser -u dev -- ~dev/.local/bin/moshi-hook pair --store file --token "$MOSHI_PAIRING_TOKEN" \
-    || echo "devbox: Moshi pairing failed; check MOSHI_PAIRING_TOKEN" >&2
-fi
-unset MOSHI_PAIRING_TOKEN   # the daemon runs as dev, so agents could read it from /proc
-# Daemons for herdr-core (the server the herdr apps connect to), Moshi and the herdr PWA.
+# Daemons for herdr-core (the server the herdr apps connect to) and the herdr PWA.
 # There's no systemd here, so a loop keeps each running, and restarts it after an update.
 # A login shell, so they (and the terminals herdr-core starts) get bash and dev's full PATH.
 runuser -l dev -c 'while :; do ~/.local/bin/herdr-core serve >/dev/null 2>&1; sleep 5; done' &
-runuser -l dev -c 'while :; do ~/.local/bin/moshi-hook serve >/dev/null 2>&1; sleep 10; done' &
 # The herdr PWA's bridge (pwa/), on 8787 for the host's reverse proxy. The image's own Node, not a
 # mise one that may be older. Its token is in ~/.config/herdr-pwa/token; its last run's output in /tmp.
 runuser -l dev -c 'while :; do /usr/bin/node /opt/herdr-pwa/server/main.ts >/tmp/herdr-pwa.log 2>&1; sleep 5; done' &

@@ -26,8 +26,6 @@ services:
       AUTHORIZED_KEYS: ${AUTHORIZED_KEYS:-}
       # Optional: also allow logging in as dev with this password.
       DEV_PASSWORD: ${DEV_PASSWORD:-}
-      # Optional: pairs moshi-hook with the Moshi app on first start (Moshi: Settings -> Integrations).
-      MOSHI_PAIRING_TOKEN: ${MOSHI_PAIRING_TOKEN:-}
     volumes:
       # Host folders next to the stack, so everything big lands on the host disk, not in Docker's storage.
       - ${DEVBOX_DATA:-./data}/home:/home/dev
