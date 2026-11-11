@@ -34,6 +34,22 @@ check.sh 192.168.1.1 192.168.1.20
 ```
 Every line should read `ok`.
 
+## The herdr PWA
+`pwa/` is a phone-first web app for herdr-core, served from the box on port 8787: your spaces and their terminals, a chat view of Claude Code sessions (with its permission prompts, questions and suggested next prompt), a real terminal (Ghostty), each space's git changes, worktrees, and push notifications when an agent needs you or finishes.
+
+1. Point a reverse proxy at `http://<host>:8787`, with HTTPS (a PWA needs it to install and to notify) and WebSocket upgrades passed through. Don't let it buffer responses on `/api/chat`, which is a stream.
+2. Open the site and paste the token: `cat ~/.config/herdr-pwa/token` in the box. It is asked for once per browser.
+3. For notifications, turn them on at the bottom of the list. On an iPhone, first add the site to the home screen and open it from there.
+
+What to know:
+- The token is the only lock, and whoever has it can run commands as `dev`. It is made on the first start; delete the file and restart the stack for a new one. Agents in the box can read it, like everything else `dev` owns.
+- Port 8787 is published on all host interfaces, as plain HTTP. If the proxy runs on the same host, publish it to that host only: `"127.0.0.1:8787:8787"` in `compose.yaml`. `PWA_PORT` changes the host port.
+- Spaces are shared with the herdr apps (the same `herdr-app` document in herdr-core), so a space or worktree made in one shows in the others. Worktrees go to `~/.herdr/worktrees/<repo>/<branch>`, as the desktop app makes them.
+- The bridge adds one `PermissionRequest` hook to `~/.claude/settings.json`, next to herdr's and Moshi's, so Claude Code's prompts can be answered from the chat. A prompt answered in the terminal or in Moshi works as before. While the bridge is down, Claude Code notes that the hook failed and carries on.
+- The chat view reads Claude Code's own session files, which have no published format: a Claude Code update can break it until the adapter (`pwa/server/chat.ts`) follows. The terminal view always works.
+- If pushes to an iPhone are refused, set a contact Apple accepts: add `"subject": "mailto:you@example.com"` to `~/.config/herdr-pwa/push.json` and restart.
+- To work on it: `cd pwa && npm install && npm test && npm run build && npm start`. `/tmp/herdr-pwa.log` has the running bridge's output.
+
 ## Installing tools
 There's no sudo, so:
 - Go, Node, Python, `uv` and `flyctl` are in the image; a rebuild updates them. For another version or language: `mise use -g node@22 rust …`. mise's versions install into the home folder, survive rebuilds and come first on the PATH.
@@ -45,6 +61,7 @@ There's no sudo, so:
 mise, Go, Node, uv and flyctl update when you rebuild the image. Sign `fly` in with `fly auth login`; its login is kept in the home folder.
 
 ## Notes
+- The image's Node runs the herdr PWA's bridge (`/usr/bin/node`), whatever version mise puts first on your PATH.
 - Mosh uses UDP 60000–60010, one port per open session, so about 11 sessions at once. With herdr you rarely need more than one.
 - SSH (2222) and mosh are published on all host interfaces, so with `DEV_PASSWORD` set anyone on your LAN can try passwords: use a long one. To allow only Tailscale, prefix the ports in `compose.yaml` with the host's Tailscale IP, e.g. `"100.x.y.z:2222:22"`.
 - DNS goes to 1.1.1.1 and 9.9.9.9, because a resolver on your LAN or Tailscale would be blocked.

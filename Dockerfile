@@ -1,3 +1,11 @@
+# The herdr PWA (pwa/): its bridge and built front end, copied into the image below.
+FROM node:lts-trixie-slim AS pwa
+WORKDIR /pwa
+COPY pwa/package.json pwa/package-lock.json ./
+RUN npm ci
+COPY pwa/ ./
+RUN npm run build && npm prune --omit=dev
+
 FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -55,7 +63,8 @@ ARG DEV_UID=99 DEV_GID=100
 RUN [ "$DEV_UID" != 0 ] && groupadd -o -g "$DEV_GID" dev && useradd -o -m -u "$DEV_UID" -g dev -s /bin/bash dev && usermod -p '*' dev
 
 COPY sshd.conf /etc/ssh/sshd_config.d/devbox.conf
+COPY --from=pwa /pwa /opt/herdr-pwa
 COPY entrypoint.sh check.sh lanblock.sh /usr/local/bin/
 
-EXPOSE 22 60000-60010/udp
+EXPOSE 22 8787 60000-60010/udp
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -1,0 +1,27 @@
+{
+  "name": "herdr-pwa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "start": "node server/main.ts",
+    "test": "node --test server/"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.17",
+    "ghostty-web": "^0.4.0",
+    "marked": "^18.2.0",
+    "preact": "^10.27.0",
+    "web-push": "^4.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.0",
+    "@types/node": "^24.0.0",
+    "@types/web-push": "^3.6.4",
+    "@types/ws": "^8.18.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0"
+  }
+}
