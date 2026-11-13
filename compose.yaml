@@ -31,6 +31,11 @@ services:
       - ${DEVBOX_DATA:-./data}/home:/home/dev
       - ${DEVBOX_DATA:-./data}/hostkeys:/etc/ssh/keys
       - ${DEVBOX_DATA:-./data}/tmp:/tmp
+      # Optional host folders, at /mnt/1-3 in the box: set MOUNT_1 to a host path (MOUNT_1_MODE=ro: read only).
+      # Unset, a slot is an empty folder, ./data/mnt/N.
+      - ${MOUNT_1:-./data/mnt/1}:/mnt/1:${MOUNT_1_MODE:-rw}
+      - ${MOUNT_2:-./data/mnt/2}:/mnt/2:${MOUNT_2_MODE:-rw}
+      - ${MOUNT_3:-./data/mnt/3}:/mnt/3:${MOUNT_3_MODE:-rw}
     cpus: 4
     mem_limit: 8g
     pids_limit: 4096

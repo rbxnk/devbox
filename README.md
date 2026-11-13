@@ -51,6 +51,17 @@ What to know:
 - To work on it: `cd pwa && npm install && npm test && npm run build && npm start`. `/tmp/herdr-pwa.log` has the running bridge's output.
 - To run your changes on 8787 without rebuilding the image: `pwa/deploy.sh` tests, builds, copies the checkout to `~/.local/share/herdr-pwa` and restarts the bridge, which then runs that copy. `rm -rf ~/.local/share/herdr-pwa` and restart the stack to go back to the image's version.
 
+## Host folders
+To work on files outside the box, such as another app's config, map up to three host folders in through the stack's environment (Dockhand's, or `.env`), then redeploy:
+```sh
+MOUNT_1=/mnt/user/appdata/otherapp   # at /mnt/1 in the box
+MOUNT_1_MODE=ro                      # optional: read only
+```
+`MOUNT_2` and `MOUNT_3` work the same, at `/mnt/2` and `/mnt/3`. An unset slot is an empty folder, `./data/mnt/N`.
+- Agents in the box can read whatever is mapped in, and change it unless it's `ro`. Map in only the folder you need.
+- `dev` writes as `DEV_UID`:`DEV_GID` (99:100, `nobody:users`, by default), so root-owned files stay read only to it.
+- The box can't restart other containers: restart the app yourself after its config changes.
+
 ## Installing tools
 There's no sudo, so:
 - Go, Node, Python, `uv` and `flyctl` are in the image; a rebuild updates them. For another version or language: `mise use -g node@22 rust …`. mise's versions install into the home folder, survive rebuilds and come first on the PATH.
