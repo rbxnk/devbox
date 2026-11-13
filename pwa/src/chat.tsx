@@ -124,6 +124,45 @@ const ToolRow = memo(({ tool, result, onFile }: { tool: Tool; result?: Result; o
   );
 });
 
+// A run of tool calls with no text between them shows as one line, as in Claude's own apps: "Ran 3 commands, read 2 files".
+const NOUN: Record<string, string> = { Ran: 'command', Read: 'file', Edited: 'file', Wrote: 'file', Fetched: 'page' };
+function groupTitle(tools: Tool[]): string {
+  const counts = new Map<string, number>();
+  for (const t of tools) { const v = summary(t)[0]; counts.set(v, (counts.get(v) ?? 0) + 1); }
+  return [...counts].map(([verb, n], i) => {
+    const phrase = NOUN[verb] ? `${verb} ${n} ${NOUN[verb]}${n > 1 ? 's' : ''}` : n > 1 ? `${verb} ×${n}` : verb;
+    return i ? phrase[0].toLowerCase() + phrase.slice(1) : phrase;
+  }).join(', ');
+}
+
+const ToolGroup = memo(({ tools, results, onFile }: { tools: Tool[]; results: Map<string, Result>; onFile?: (path: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const failed = tools.filter((t) => results.get(t.id)?.error).length;
+  return (
+    <details class="tool" onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>
+        <span class="tool-verb">{groupTitle(tools)}</span>
+        {tools.some((t) => !results.has(t.id)) && <span class="tool-wait" aria-label="running" />}
+        {failed > 0 && <span class="tool-flag">{failed} failed</span>}
+      </summary>
+      {open && <div class="tool-group">{tools.map((t) => <ToolRow key={t.id} tool={t} result={results.get(t.id)} onFile={onFile} />)}</div>}
+    </details>
+  );
+});
+
+/** The messages to draw, with each run of two or more tool calls as one group. */
+function rows(messages: Message[]): (Message | Tool[])[] {
+  const out: (Message | Tool[])[] = [];
+  for (const m of messages) {
+    const last = out[out.length - 1];
+    if (m.type !== 'tool') out.push(m);
+    else if (Array.isArray(last)) last.push(m);
+    else if (last?.type === 'tool') out[out.length - 1] = [last, m];
+    else out.push(m);
+  }
+  return out;
+}
+
 const api = (path: string, body: unknown) =>
   fetch(path, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
@@ -325,8 +364,9 @@ export function ChatView({ address, t, onFile, onTerminal }: {
         )}
         {chat.state === 'loading' && <p class="empty">Loading…</p>}
         {chat.state === 'ready' && chat.messages.length === 0 && pending.length === 0 && <p class="empty">No messages yet. Say something below.</p>}
-        {visible.map((m) =>
-          m.type === 'tool' ? <ToolRow key={m.id} tool={m} result={chat.results.get(m.id)} onFile={onFile} />
+        {rows(visible).map((m) =>
+          Array.isArray(m) ? <ToolGroup key={m[0].id} tools={m} results={chat.results} onFile={onFile} />
+            : m.type === 'tool' ? <ToolRow key={m.id} tool={m} result={chat.results.get(m.id)} onFile={onFile} />
             : m.type === 'user' ? <div key={m.id} class="bubble"><div class="bubble-text">{m.text}</div></div>
             : m.type === 'note' ? <p key={m.id} class="note">{m.text}</p>
             : <Markdown key={m.id} text={m.text} />)}

@@ -140,12 +140,13 @@ input[type="text"], input[type="password"], input:not([type]), textarea {
 .tool summary { display: flex; align-items: center; gap: 6px; min-height: 32px; cursor: pointer; list-style: none; }
 .tool summary::-webkit-details-marker { display: none; }
 .tool summary::before { content: '›'; flex: none; width: 12px; transition: transform .1s; }
-.tool[open] summary::before { transform: rotate(90deg); }
+.tool[open] > summary::before { transform: rotate(90deg); }
 .tool-verb { flex: none; color: var(--text); }
 .tool-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, Menlo, monospace; font-size: .82rem; }
 .tool-wait { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--work); animation: pulse 1.2s ease-in-out infinite; }
 .tool-flag { flex: none; color: var(--bad); font-size: .78rem; }
 .tool-body { display: flex; flex-direction: column; gap: 6px; padding: 4px 0 8px 18px; }
+.tool-group { display: flex; flex-direction: column; padding: 0 0 4px 18px; }
 .code { white-space: pre; color: var(--text); max-height: 320px; overflow: auto; }
 .code.out { color: var(--dim); } .code.err { color: var(--bad); }
 .diff .del { color: var(--bad); } .diff .add { color: var(--ok); }
