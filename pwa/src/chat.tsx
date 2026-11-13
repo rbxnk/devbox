@@ -5,9 +5,10 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import type { Control, Item } from '../server/chat.ts';
 import type { Answer, Ask } from '../server/asks.ts';
-import { claudeSuggestion } from '../shared/screen.ts';
+import { claudeInput } from '../shared/screen.ts';
 import { shown, type Terminal } from '../shared/model.ts';
 import { hc, token, useApp } from './state.ts';
+import { TerminalView } from './terminal.tsx';
 
 type Tool = Extract<Item, { type: 'tool' }>;
 type Result = Extract<Item, { type: 'result' }>;
@@ -236,16 +237,19 @@ export function ChatView({ address, t, onFile, onTerminal }: {
   const stuck = useRef(true); // following the newest message
   const state = shown(t);
 
-  // Claude Code's suggested next prompt sits in its input box a moment after a turn ends: read it off the screen.
-  const [suggestion, setSuggestion] = useState<string | null>(null);
+  // Claude Code's input box, read off the screen while it waits: its suggested next prompt sits there a moment
+  // after a turn ends, and a picker (/resume's) or a dialog takes its place while one is open.
+  const [input, setInput] = useState<string | null | undefined>(undefined); // undefined: not read yet
   const settled = state === 'idle' || state === 'done';
   useEffect(() => {
-    setSuggestion(null);
+    setInput(undefined);
     if (!settled || conn !== 'open') return;
-    const look = () => hc.call('terminal.read', { terminal: address }).then((r) => setSuggestion(claudeSuggestion(r.text))).catch(() => {});
-    const timers = [1500, 5000].map((ms) => setTimeout(look, ms));
-    return () => timers.forEach(clearTimeout);
+    const look = () => hc.call('terminal.read', { terminal: address }).then((r) => setInput(claudeInput(r.text))).catch(() => {});
+    // shortcut: polls every 2 s while Claude waits, since nothing reports a picker opening; fine for the one open chat.
+    const first = setTimeout(look, 1500), timer = setInterval(look, 2000);
+    return () => { clearTimeout(first); clearInterval(timer); };
   }, [address, settled, t.turn, conn]);
+  const suggestion = input || null;
 
   // A sent message leaves the waiting list once the transcript has it.
   const pending = sent.filter((s) => !chat.messages.slice(-20).some((m) => m.type === 'user' && m.text.trim() === s.trim()));
@@ -254,7 +258,7 @@ export function ChatView({ address, t, onFile, onTerminal }: {
   useLayoutEffect(() => {
     const el = scroller.current;
     if (el && stuck.current) el.scrollTop = el.scrollHeight;
-  }, [chat, pending.length, state, suggestion]);
+  }, [chat, pending.length, state, input]);
 
   // A picture goes to a file beside the terminal (hc's terminal.put); its path goes in the message for Claude to read.
   const [attaching, setAttaching] = useState(false);
@@ -315,10 +319,11 @@ export function ChatView({ address, t, onFile, onTerminal }: {
         {pending.map((text, i) => <div key={`p${i}`} class="bubble sending"><div class="bubble-text">{text}</div></div>)}
         {state === 'working' && <p class="working" role="status"><span class="dot dot-working" /> {t.status?.msg || 'Working…'}</p>}
         {chat.asks.map((ask) => <AskCard key={ask.id} ask={ask} onFile={onFile} />)}
-        {state === 'blocked' && chat.asks.length === 0 && (
-          <div class="ask" role="status">
-            <p>{t.status?.msg || 'Claude is waiting for your answer.'}</p>
-            <button class="primary" onClick={onTerminal}>Answer in the terminal</button>
+        {/* What the chat can't show as buttons (a picker, a dialog the hook doesn't cover): the terminal itself. */}
+        {(input === null || (state === 'blocked' && chat.asks.length === 0)) && (
+          <div class="ask term-card" role="group" aria-label="Claude's terminal">
+            <p>{input === null ? 'Claude is showing this in its terminal.' : t.status?.msg || 'Claude is waiting for your answer.'}</p>
+            <TerminalView address={address} />
           </div>
         )}
       </div>

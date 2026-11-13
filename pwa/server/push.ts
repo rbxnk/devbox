@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import * as webpush from 'web-push';
 import type { PushSubscription } from 'web-push';
 
-type Term = { address: string; state?: string; title?: string; turn?: number; labels?: Record<string, string>; status?: { state?: string; msg?: string } | null; foreground?: { name?: string } | null };
+export type Term = { address: string; state?: string; pid?: number | null; title?: string; turn?: number; labels?: Record<string, string>; status?: { state?: string; msg?: string } | null; foreground?: { pid?: number; name?: string } | null };
 export type Note = { title: string; body: string; url: string; tag: string };
 
 const nameOf = (t: Term) => t.title || t.foreground?.name || t.address;
@@ -46,6 +46,8 @@ export class Push {
   private stopped = false;
   private hc?: ReturnType<typeof spawn>;
   private hcBin: string;
+  /** Every terminal as it is after each event, and each one in a snapshot. */
+  onTerm?: (t: Term) => void;
 
   constructor(dir: string, hcBin = 'herdr-core') {
     this.hcBin = hcBin;
@@ -111,7 +113,7 @@ export class Push {
 
   private take(m: any) {
     const snapshot: Term[] | undefined = m.result?.terminals ?? (m.method === 'missed' ? m.params.terminals : undefined);
-    if (snapshot) { this.terms = new Map(snapshot.map((t) => [t.address, t])); return; }
+    if (snapshot) { this.terms = new Map(snapshot.map((t) => [t.address, t])); snapshot.forEach((t) => this.onTerm?.(t)); return; }
     if (m.method !== 'event' || !m.params?.terminal) return;
     const { terminal: a, type, data } = m.params;
     const before = this.terms.get(a);
@@ -128,6 +130,7 @@ export class Push {
     else if (type === 'foreground') after = { ...before, foreground: data };
     else return;
     this.terms.set(a, after!);
+    this.onTerm?.(after!);
     const note = this.count ? noteFor(before, { type, data }, after!) : null;
     // A moment's wait: someone watching in a herdr app answers or is marked as having seen it.
     if (note) setTimeout(() => { if (stillNews(note, this.terms.get(a))) void this.send(note); }, 4000);

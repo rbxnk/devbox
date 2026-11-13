@@ -120,6 +120,7 @@ input[type="text"], input[type="password"], input:not([type]), textarea {
 .earlier:hover { background: var(--raised); }
 .working { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: .9rem; }
 .ask { background: var(--panel); border: 1px solid var(--warn); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.term-card .term { flex: none; height: 55vh; border-radius: 8px; overflow: hidden; }
 
 .md { overflow-wrap: anywhere; line-height: 1.55; }
 .md > :first-child { margin-top: 0; } .md > :last-child { margin-bottom: 0; }

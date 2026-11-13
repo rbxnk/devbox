@@ -45,6 +45,7 @@ What to know:
 - Port 8787 is published on all host interfaces, as plain HTTP. If the proxy runs on the same host, publish it to that host only: `"127.0.0.1:8787:8787"` in `compose.yaml`. `PWA_PORT` changes the host port.
 - Spaces are shared with the herdr apps (the same `herdr-app` document in herdr-core), so a space or worktree made in one shows in the others. Worktrees go to `~/.herdr/worktrees/<repo>/<branch>`, as the desktop app makes them.
 - The bridge adds one `PermissionRequest` hook to `~/.claude/settings.json`, next to herdr's, so Claude Code's prompts can be answered from the chat. A prompt answered in the terminal works as before. While the bridge is down, Claude Code notes that the hook failed and carries on.
+- After the box or herdr-core restarts, a terminal that was running Claude Code gets it back: the bridge types `claude --resume <session>` into its new shell. It notes each terminal's session in a `herdr-pwa.claude` label. Claude Code that was quit on purpose stays quit, and flags it was started with aren't carried over.
 - The chat view reads Claude Code's own session files, which have no published format: a Claude Code update can break it until the adapter (`pwa/server/chat.ts`) follows. The terminal view always works.
 - If pushes to an iPhone are refused, set a contact Apple accepts: add `"subject": "mailto:you@example.com"` to `~/.config/herdr-pwa/push.json` and restart.
 - To work on it: `cd pwa && npm install && npm test && npm run build && npm start`. `/tmp/herdr-pwa.log` has the running bridge's output.

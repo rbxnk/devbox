@@ -65,11 +65,17 @@ export function parseClaude(line: string): Item[] {
 
 const claudeHome = () => process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
 
+/** The id of the session a Claude Code process is in now. Null: not a Claude Code process. */
+function sessionOf(pid: number, home = claudeHome()): string | null {
+  let session: unknown;
+  try { session = JSON.parse(fs.readFileSync(path.join(home, 'sessions', `${pid}.json`), 'utf8')).sessionId; } catch { return null; }
+  return typeof session === 'string' && /^[\w-]+$/.test(session) ? session : null;
+}
+
 /** The session a Claude Code process is in now, and its transcript file. Null: not a Claude Code process. */
 export function claudeSession(pid: number, home = claudeHome()): { session: string; file: string } | null {
-  let session: string;
-  try { session = JSON.parse(fs.readFileSync(path.join(home, 'sessions', `${pid}.json`), 'utf8')).sessionId; } catch { return null; }
-  if (typeof session !== 'string' || !/^[\w-]+$/.test(session)) return null;
+  const session = sessionOf(pid, home);
+  if (!session) return null;
   const projects = path.join(home, 'projects');
   // The folder is named after the folder the session started in, which the process may have left since.
   for (const dir of fs.readdirSync(projects, { withFileTypes: true })) {

@@ -12,6 +12,7 @@ import { api } from './api.ts';
 import { hookAsk, installHook } from './asks.ts';
 import { useHc } from './core.ts';
 import { Push } from './push.ts';
+import { resume } from './resume.ts';
 import { DATA, HEADER, MAX_PAYLOAD, decodeOne, decoder, encode } from '../shared/frames.ts';
 
 // What a browser may call. Not here on purpose: hello (the bridge does it), server.stop/restart,
@@ -115,7 +116,7 @@ export function start(opts: { port: number; host?: string; token: string; dist: 
   const dist = path.resolve(opts.dist);
   useHc(opts.hc);
   const push = new Push(opts.config, opts.hc);
-  if (opts.watch) push.watch();
+  if (opts.watch) { push.onTerm = resume; push.watch(); }
   const server = http.createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://x');
     if (url.pathname === '/hook/ask') { hookAsk(req, res); return; } // its own check: loopback only
