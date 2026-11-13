@@ -48,6 +48,7 @@ What to know:
 - The chat view reads Claude Code's own session files, which have no published format: a Claude Code update can break it until the adapter (`pwa/server/chat.ts`) follows. The terminal view always works.
 - If pushes to an iPhone are refused, set a contact Apple accepts: add `"subject": "mailto:you@example.com"` to `~/.config/herdr-pwa/push.json` and restart.
 - To work on it: `cd pwa && npm install && npm test && npm run build && npm start`. `/tmp/herdr-pwa.log` has the running bridge's output.
+- To run your changes on 8787 without rebuilding the image: `pwa/deploy.sh` tests, builds, copies the checkout to `~/.local/share/herdr-pwa` and restarts the bridge, which then runs that copy. `rm -rf ~/.local/share/herdr-pwa` and restart the stack to go back to the image's version.
 
 ## Installing tools
 There's no sudo, so:

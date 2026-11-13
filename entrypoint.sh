@@ -47,6 +47,8 @@ runuser -u dev -- bash -c 'set -eo pipefail
 runuser -l dev -c 'while :; do ~/.local/bin/herdr-core serve >/dev/null 2>&1; sleep 5; done' &
 # The herdr PWA's bridge (pwa/), on 8787 for the host's reverse proxy. The image's own Node, not a
 # mise one that may be older. Its token is in ~/.config/herdr-pwa/token; its last run's output in /tmp.
-runuser -l dev -c 'while :; do /usr/bin/node /opt/herdr-pwa/server/main.ts >/tmp/herdr-pwa.log 2>&1; sleep 5; done' &
+# A copy deployed from the box (pwa/deploy.sh) to ~/.local/share/herdr-pwa wins over the image's; delete it to go back.
+runuser -l dev -c 'while :; do d=/opt/herdr-pwa; [ -f ~/.local/share/herdr-pwa/server/main.ts ] && d=~/.local/share/herdr-pwa
+  /usr/bin/node "$d/server/main.ts" >/tmp/herdr-pwa.log 2>&1; sleep 5; done' &
 
 exec /usr/sbin/sshd -D -e
