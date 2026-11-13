@@ -255,10 +255,21 @@ export function ChatView({ address, t, onFile, onTerminal }: {
   const pending = sent.filter((s) => !chat.messages.slice(-20).some((m) => m.type === 'user' && m.text.trim() === s.trim()));
   const visible = chat.messages.slice(-limit);
 
+  // While following, keep the newest message in view through any change: new content, a status line, a card,
+  // or the pane shrinking (keyboard, composer). Mutations and resizes, rather than a list of what might change.
+  const hasPane = chat.state !== 'none';
   useLayoutEffect(() => {
     const el = scroller.current;
-    if (el && stuck.current) el.scrollTop = el.scrollHeight;
-  }, [chat, pending.length, state, input]);
+    if (!el) return;
+    const follow = () => { if (stuck.current) el.scrollTop = el.scrollHeight; };
+    follow();
+    const mo = new MutationObserver(follow);
+    mo.observe(el, { childList: true, subtree: true, characterData: true });
+    const ro = new ResizeObserver(follow);
+    ro.observe(el);
+    return () => { mo.disconnect(); ro.disconnect(); };
+  }, [hasPane]);
+  const lastTop = useRef(0);
 
   // A picture goes to a file beside the terminal (hc's terminal.put); its path goes in the message for Claude to read.
   const [attaching, setAttaching] = useState(false);
@@ -304,7 +315,10 @@ export function ChatView({ address, t, onFile, onTerminal }: {
     <div class="chat">
       <div class="chat-scroll" ref={scroller} onScroll={(e) => {
         const el = e.currentTarget;
-        stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+        // Only scrolling up lets go: content or the pane changing size also fires scroll events.
+        if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) stuck.current = true;
+        else if (el.scrollTop < lastTop.current) stuck.current = false;
+        lastTop.current = el.scrollTop;
       }}>
         {chat.messages.length > limit && (
           <button class="earlier" onClick={() => { stuck.current = false; setLimit((l) => l + PAGE); }}>Show earlier messages</button>
