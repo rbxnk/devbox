@@ -22,8 +22,9 @@ export async function api(req: http.IncomingMessage, res: http.ServerResponse, u
   if (req.method === 'GET' && url.pathname === '/api/chat') {
     const pid = Number(url.searchParams.get('pid'));
     if (!Number.isSafeInteger(pid) || pid <= 0) { res.writeHead(400).end(); return; }
-    // One JSON item per line, for as long as the client listens.
-    res.writeHead(200, { 'content-type': 'application/x-ndjson', 'cache-control': 'no-store', 'x-accel-buffering': 'no' });
+    // One JSON item per line, for as long as the client listens. Labelled an event stream (the app reads the
+    // body itself, not with EventSource) because that is what proxies such as Cloudflare pass on without buffering.
+    res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store, no-transform', 'x-accel-buffering': 'no' });
     const stop = followClaude(pid, (item) => res.write(JSON.stringify(item) + '\n'));
     const beat = setInterval(() => res.write('\n'), 15000); // keeps a proxy from closing a quiet stream
     req.on('close', () => { stop(); clearInterval(beat); });
